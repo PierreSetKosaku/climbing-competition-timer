@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurable Timer</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      font-size: 39vw;
+      margin: 0;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;  
+      width: 50%;
+    }
+    .hidden {
+      display: none;
+    }
+    button, input {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 50%;
+    }
+    
+    #toggleButton {
+      width: 10%;
+      transition: opacity 0.3s ease;
+    }
+    .dimmed {
+      opacity: 0.1; /* Less visible when timer is running */
+    }
+    .dimmed:hover {
+      opacity: 1; /* Fully visible when hovered */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls -->
+  <div id="controlPanel" class="controls">
+    <input id="periodInput" type="number" placeholder="Period (mins)" value="3" />
+    <input id="transitionInput" type="number" placeholder="Transition (secs)" value="15" />
+    <button id="startButton">Start</button>
+    <button id="stopButton" disabled>Stop</button>
+    <button id="resetButton" disabled>Reset</button>
+  </div>
+  <!-- Toggle Button -->
+  <button id="toggleButton">Hide Controls</button>
+
+   <!-- Timer Display -->
+   <h1 id="timer">03:00</h1>
+
+  <script>
+    // Variables
+    let periodLength = 180; // Default 3 minutes
+    let transitionTime = 15; // Default 15 seconds
+    let timeLeft = periodLength; // Time counter
+    let isTransition = false; // To track transition state
+    let countdownInterval = null;
+    let audioContext;
+
+    // DOM Elements
+    const timerDisplay = document.getElementById("timer");
+    const periodInput = document.getElementById("periodInput");
+    const transitionInput = document.getElementById("transitionInput");
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
+    const resetButton = document.getElementById("resetButton");
+    const controlPanel = document.getElementById("controlPanel");
+    const toggleButton = document.getElementById("toggleButton");
+
+    // Beep Function
+    function beep(frequency = 440, duration = 200) {
+      if (!audioContext || audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = frequency;
+      oscillator.type = "sine";
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+      }, duration);
+    }
+
+    // Update Timer Display
+    function updateDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timerDisplay.textContent = `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+    }
+
+    // Start Timer Function
+    function startTimer() {
+      // Initialize values from inputs
+      periodLength = parseInt(periodInput.value) * 60;
+      transitionTime = parseInt(transitionInput.value);
+      timeLeft = periodLength;
+
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Dim the toggle button
+      toggleButton.classList.add("dimmed");
+
+      // Start countdown
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        updateDisplay();
+
+        // Beep rules during countdown
+        if (!isTransition) {
+          if (timeLeft === 60) {
+            beep(1000, 300); // 1-minute warning beep
+          }
+        }
+
+        if (timeLeft <= 3 && timeLeft > 0) {
+          beep(1000, 200); // Last 4 seconds
+        } else if (timeLeft === 0) {
+          beep(1500, 500); // Final distinct beep
+        } 
+
+        // Check if time is up
+        if (timeLeft <= 0) {
+          if (transitionTime > 0 && !isTransition) {
+            // Start transition period
+            timeLeft = transitionTime;
+            isTransition = true;
+          } else {
+            // Reset the timer (skip transition if set to 0)
+            timeLeft = periodLength;
+            isTransition = false; // Exit transition mode
+          }
+        }
+      }, 1000);
+
+      // Disable Start and Enable Stop/Reset
+      startButton.disabled = true;
+      stopButton.disabled = false;
+      resetButton.disabled = false;
+    }
+
+    // Stop Timer Function
+    function stopTimer() {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+
+      // Make the toggle button fully visible again
+      toggleButton.classList.remove("dimmed");
+
+      // Enable Start and Disable Stop
+      startButton.disabled = false;
+      stopButton.disabled = true;
+    }
+
+    // Reset Timer Function
+    function resetTimer() {
+      stopTimer(); // Stop if running
+      timeLeft = parseInt(periodInput.value) * 60; // Reset time
+      isTransition = false; // Exit transition mode
+      updateDisplay();
+
+      // Disable Reset until started again
+      resetButton.disabled = true;
+    }
+
+    // Toggle Controls Visibility
+    toggleButton.addEventListener("click", () => {
+      if (controlPanel.classList.contains("hidden")) {
+        controlPanel.classList.remove("hidden");
+        toggleButton.textContent = "Hide Controls";
+      } else {
+        controlPanel.classList.add("hidden");
+        toggleButton.textContent = "Show Controls";
+      }
+    });
+
+    // Button Listeners
+    startButton.addEventListener("click", startTimer);
+    stopButton.addEventListener("click", stopTimer);
+    resetButton.addEventListener("click", resetTimer);
+
+    // Initialize Display
+    updateDisplay();
+  </script>
+</body>
+</html>
