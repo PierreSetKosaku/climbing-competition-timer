@@ -44,7 +44,7 @@
       transition: opacity 0.3s ease;
     }
     .dimmed {
-      opacity: 0.1; /* Less visible when timer is running */
+      opacity: 0.2; /* Less visible when timer is running */
     }
     .dimmed:hover {
       opacity: 1; /* Fully visible when hovered */
@@ -59,7 +59,7 @@
     <input id="transitionInput" type="number" placeholder="Transition (secs)" value="15" />
     <button id="startButton">Start</button>
     <button id="stopButton" disabled>Stop</button>
-    <button id="resetButton" disabled>Reset</button>
+    <button id="resetButton">Initialize</button>
   </div>
   <!-- Toggle Button -->
   <button id="toggleButton">Hide Controls</button>
@@ -118,9 +118,16 @@
     // Start Timer Function
     function startTimer() {
       // Initialize values from inputs
-      periodLength = parseInt(periodInput.value) * 60;
-      transitionTime = parseInt(transitionInput.value);
-      timeLeft = periodLength;
+      if (!countdownInterval) { // Only reset values if timer isn't already running
+        periodLength = parseInt(periodInput.value) * 60;
+        transitionTime = parseInt(transitionInput.value);
+
+        // Only set timeLeft if it's not already counting down
+        if (timeLeft <= 0 || isTransition) {
+          timeLeft = periodLength;
+          isTransition = false;
+        }
+      }
 
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -167,7 +174,7 @@
       resetButton.disabled = false;
     }
 
-    // Stop Timer Function
+    // Stop Timer Function  
     function stopTimer() {
       clearInterval(countdownInterval);
       countdownInterval = null;
@@ -195,9 +202,11 @@
     toggleButton.addEventListener("click", () => {
       if (controlPanel.classList.contains("hidden")) {
         controlPanel.classList.remove("hidden");
+        toggleButton.classList.remove("dimmed");
         toggleButton.textContent = "Hide Controls";
       } else {
         controlPanel.classList.add("hidden");
+        toggleButton.classList.add("dimmed");
         toggleButton.textContent = "Show Controls";
       }
     });
