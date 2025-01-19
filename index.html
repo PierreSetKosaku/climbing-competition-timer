@@ -21,6 +21,10 @@
       font-size: 39vw;
       margin: 0;
     }
+    h2 {
+      font-size: 2vw;
+      margin: 0;
+    }
     .controls {
       margin-top: 20px;
       display: flex;
@@ -66,6 +70,7 @@
 
    <!-- Timer Display -->
    <h1 id="timer">03:00</h1>
+   <h2 id="actionText"></h2>
 
   <script>
     // Variables
@@ -85,6 +90,7 @@
     const resetButton = document.getElementById("resetButton");
     const controlPanel = document.getElementById("controlPanel");
     const toggleButton = document.getElementById("toggleButton");
+    const actionText = document.getElementById("actionText");
 
     // Beep Function
     function beep(frequency = 440, duration = 200) {
@@ -128,13 +134,14 @@
           isTransition = false;
         }
       }
-
+      
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
 
       // Dim the toggle button
-      toggleButton.classList.add("dimmed");
+      toggleButton.classList.add("dimmed");      
+      actionText.textContent = "Climbing";
 
       // Start countdown
       countdownInterval = setInterval(() => {
@@ -148,21 +155,22 @@
           }
         }
 
-        if (timeLeft <= 3 && timeLeft > 0) {
+        if (timeLeft <= 4 && timeLeft > 0) {
           beep(1000, 200); // Last 4 seconds
         } else if (timeLeft === 0) {
           beep(1500, 500); // Final distinct beep
         } 
-
         // Check if time is up
         if (timeLeft <= 0) {
-          if (transitionTime > 0 && !isTransition) {
+          if (transitionTime >= 0 && !isTransition) {
             // Start transition period
             timeLeft = transitionTime;
+            transitionState();
             isTransition = true;
           } else {
             // Reset the timer (skip transition if set to 0)
             timeLeft = periodLength;
+            climbingState();
             isTransition = false; // Exit transition mode
           }
         }
@@ -196,6 +204,16 @@
 
       // Disable Reset until started again
       resetButton.disabled = true;
+    }
+
+    function transitionState() {
+      timerDisplay.style.color = "red";
+      actionText.textContent = "Transition";
+    }
+
+    function climbingState() {
+      timerDisplay.style.color = "white";
+      actionText.textContent = "Climbing";
     }
 
     // Toggle Controls Visibility
